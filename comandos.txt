@@ -1,0 +1,23 @@
+# Crear modelo y migración para Roles
+php artisan make:model Rol -m
+
+# Crear modelo y migración para Usuarios
+php artisan make:model Usuario -m
+
+# Crear modelo y migración para Socios
+php artisan make:model Socio -m
+
+# Crear modelo y migración para Pagos
+php artisan make:model Pago -m
+
+# Crear modelo y migración para Solicitudes de Registro
+php artisan make:model SolicitudRegistro -m
+
+# Crear modelo y migración para Requisitos de Membresía
+php artisan make:model RequisitoMembresia -m
+
+# Crear modelo y migración para Auditorías
+php artisan make:model Auditoria -m
+
+# Crear modelo y migración para Configuración del Sistema
+php artisan make:model ConfiguracionSistema -m
