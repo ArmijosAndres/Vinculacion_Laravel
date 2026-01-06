@@ -21,3 +21,13 @@ php artisan make:model Auditoria -m
 
 # Crear modelo y migración para Configuración del Sistema
 php artisan make:model ConfiguracionSistema -m
+______________________________________________________________________________
+
+php artisan make:controller Api/RolController --api
+php artisan make:controller Api/UsuarioController --api
+php artisan make:controller Api/SocioController --api
+php artisan make:controller Api/PagoController --api
+php artisan make:controller Api/SolicitudRegistroController --api
+php artisan make:controller Api/RequisitoMembresiaController --api
+php artisan make:controller Api/AuditoriaController --api
+php artisan make:controller Api/ConfiguracionSistemaController --api
