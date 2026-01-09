@@ -13,11 +13,16 @@ use App\Http\Controllers\Api\{
     LoginController
 };
 
-// Ruta pública de login
+// Rutas públicas
 Route::post('/login', [LoginController::class, 'login']);
+Route::post('/logout', [LoginController::class, 'logout']);
 
 // Rutas protegidas con JWT
 Route::middleware('jwt')->group(function () {
+    // Auth
+    Route::get('/me', [LoginController::class, 'me']);
+    
+    // Recursos
     Route::apiResource('roles', RolController::class);
     Route::apiResource('usuarios', UsuarioController::class);
     Route::apiResource('socios', SocioController::class);

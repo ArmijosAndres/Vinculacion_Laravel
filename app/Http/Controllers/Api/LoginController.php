@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -18,85 +19,105 @@ class LoginController extends Controller
 
     public function login(Request $request, JWTService $jwt)
     {
-        // Validación de entrada
-        $validator = Validator::make($request->all(), [
-            'usuario' => 'required|string',
-            'password' => 'required|string'
-        ]);
-
-        if ($validator->fails()) {
+        // Aceptar 'email', 'cedula' o 'usuario' desde el frontend
+        $loginField = $request->email ?? $request->cedula ?? $request->usuario;
+        
+        if (!$loginField) {
             return response()->json([
-                'estado' => 'error',
-                'mensaje' => 'Datos incompletos',
-                'errores' => $validator->errors()
+                'success' => false,
+                'message' => 'Debe proporcionar email o cédula'
             ], 422);
         }
 
-        // Intentar acceder
-        $registro = $this->usuarioRepo->acceder($request->usuario, $request->password);
+        $usuario = $this->usuarioRepo->acceder($loginField, $request->password);
         
-        if ($registro != null) {
+        if ($usuario) {
+            $usuario->load('rol', 'socio');
+            
+            // Mapear nombre_rol a lo que espera el frontend
+            $rolNombre = strtolower($usuario->rol->nombre_rol ?? 'socio');
+            // Convertir 'Secretaria' a 'secretario' para el frontend
+            $roleMap = [
+                'presidente' => 'presidente',
+                'secretaria' => 'secretario',
+                'tesorero' => 'tesorero',
+                'socio' => 'socio',
+                'usuario' => 'socio'
+            ];
+            $role = $roleMap[$rolNombre] ?? 'socio';
+            
             $token = $jwt->crearToken([
-                'usuario' => $request->usuario,
-                'id' => $registro->id ?? null, // Incluye el ID si lo necesitas
-                // Puedes agregar más datos: rol, permisos, etc.
+                'id' => $usuario->id_usuario,
+                'cedula' => $usuario->cedula,
+                'email' => $usuario->email,
+                'rol' => $role
             ]);
 
             return response()->json([
-                'estado' => 'ok',
-                'mensaje' => 'Login exitoso',
+                'success' => true,
+                'message' => 'Login exitoso',
                 'token' => $token,
-                'usuario' => [
-                    'id' => $registro->id,
-                    'usuario' => $registro->usuario,
-                    'nombre' => $registro->nombre ?? null,
-                    // Otros datos que necesites en el frontend
+                'user' => [
+                    'id' => $usuario->id_usuario,
+                    'cedula' => $usuario->cedula,
+                    'email' => $usuario->email,
+                    'nombre' => $usuario->nombres,
+                    'apellidos' => $usuario->apellidos,
+                    'role' => $role,
+                    'numero_socio' => $usuario->socio->numero_socio ?? null
                 ]
             ], 200);
         }
 
         return response()->json([
-            'estado' => 'error',
-            'mensaje' => 'Credenciales incorrectas'
+            'success' => false,
+            'message' => 'Credenciales incorrectas'
         ], 401);
     }
 
-    public function logout(Request $request)
+    public function me(Request $request, JWTService $jwt)
     {
-        // Aquí podrías invalidar el token si tu JWTService lo permite
-        return response()->json([
-            'estado' => 'ok',
-            'mensaje' => 'Sesión cerrada exitosamente'
-        ], 200);
+        $token = $request->bearerToken();
+        
+        try {
+            $decoded = $jwt->validarToken($token);
+            $usuario = $this->usuarioRepo->buscarPorId($decoded->data->id);
+            
+            if (!$usuario) {
+                return response()->json(['success' => false, 'message' => 'Usuario no encontrado'], 404);
+            }
+
+            $rolNombre = strtolower($usuario->rol->nombre_rol ?? 'socio');
+            $roleMap = [
+                'presidente' => 'presidente',
+                'secretaria' => 'secretario',
+                'tesorero' => 'tesorero',
+                'socio' => 'socio',
+                'usuario' => 'socio'
+            ];
+            $role = $roleMap[$rolNombre] ?? 'socio';
+
+            return response()->json([
+                'success' => true,
+                'user' => [
+                    'id' => $usuario->id_usuario,
+                    'cedula' => $usuario->cedula,
+                    'email' => $usuario->email,
+                    'nombre' => $usuario->nombres . ' ' . $usuario->apellidos,
+                    'role' => $role,
+                    'numero_socio' => $usuario->socio->numero_socio ?? null
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Token inválido'], 401);
+        }
     }
 
-    public function refresh(Request $request, JWTService $jwt)
+    public function logout()
     {
-        // Opcionalmente, renovar el token
-        $tokenActual = $request->bearerToken();
-        
-        if (!$tokenActual) {
-            return response()->json([
-                'estado' => 'error',
-                'mensaje' => 'Token no proporcionado'
-            ], 401);
-        }
-
-        try {
-            $decodificado = $jwt->validarToken($tokenActual);
-            $nuevoToken = $jwt->crearToken([
-                'usuario' => $decodificado->usuario
-            ]);
-
-            return response()->json([
-                'estado' => 'ok',
-                'token' => $nuevoToken
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'estado' => 'error',
-                'mensaje' => 'Token inválido'
-            ], 401);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'Sesión cerrada'
+        ]);
     }
 }
