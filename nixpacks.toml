@@ -1,11 +1,8 @@
-[phases.setup]
-nixPkgs = ["php83", "php83Extensions.pdo_pgsql"]
-
 [phases.build]
 cmds = [
     "composer install --no-dev --optimize-autoloader",
-    "php artisan config:clear",
-    "php artisan route:clear"
+    "php artisan config:cache",
+    "php artisan route:cache"
 ]
 
 [start]
